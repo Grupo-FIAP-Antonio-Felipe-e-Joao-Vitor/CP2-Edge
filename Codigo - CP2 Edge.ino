@@ -75,8 +75,8 @@ int intervaloAlertaMinLuz = minOkLuz - 10;
 int intervaloAlertaMaxLuz = maxOkLuz + 10;
 
 // Limites para a temperatura 
-int minOkTemp = 11;
-int maxOkTemp = 15;
+int minOkTemp = 12;
+int maxOkTemp = 14;
 // Intervalos de alerta para temperatura (offset em relação aos limites Ok)
 int intervaloAlertaMinTemp = 3; // Quanto abaixo do minOkTemp para alerta crítico
 int intervaloAlertaMaxTemp = 3; // Quanto acima do maxOkTemp para alerta crítico
@@ -127,6 +127,16 @@ void setup() {
   } else {
     usarFarenhait = false; // Valor padrão se nada estiver salvo
     EEPROM.put(tempAdress, usarFarenhait); // Salva o padrão
+  }
+
+  if (usarFarenhait == true) {
+    int minOkTemp = 53;
+    int maxOkTemp = 57;
+  }
+
+  else if (usarFarenhait == false) {
+    int minOkTemp = 12;
+    int maxOkTemp = 14;
   }
 
   // Carrega a configuração de fuso horário da EEPROM
@@ -557,8 +567,7 @@ void apresentarInfo(int luz, float umid, float temp, int hud, DateTime adjustedT
   }
   // HUD 2: Mostra Data e Hora atuais
   else if (hud == 2) {
-    lcd.setCursor(0, 0);
-    lcd.print("DATA: ");
+    lcd.setCursor(3, 0);
     lcd.print(adjustedTime.day() < 10 ? "0" : ""); // Adiciona zero à esquerda se dia < 10
     lcd.print(adjustedTime.day());
     lcd.print("/");
@@ -567,8 +576,7 @@ void apresentarInfo(int luz, float umid, float temp, int hud, DateTime adjustedT
     lcd.print("/");
     lcd.print(adjustedTime.year());
 
-    lcd.setCursor(0, 1);
-    lcd.print("HORA: ");
+    lcd.setCursor(5, 1);
     lcd.print(adjustedTime.hour() < 10 ? "0" : ""); // Adiciona zero à esquerda se hora < 10
     lcd.print(adjustedTime.hour());
     lcd.print(":");

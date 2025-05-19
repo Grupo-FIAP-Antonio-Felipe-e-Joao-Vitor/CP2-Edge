@@ -6,10 +6,10 @@
 // Também possui um sistema de alerta visual (LEDs) e sonoro (buzzer).
 
 // --- BIBLIOTECAS ---
-#include <RTClib.h>         // Biblioteca para o módulo Real Time Clock (RTC)
+#include <RTClib.h>       // Biblioteca para o módulo Real Time Clock (RTC)
 #include <LiquidCrystal_I2C.h> // Biblioteca para controlar o display LCD com interface I2C
-#include <Wire.h>           // Biblioteca para comunicação I2C (necessária para LCD I2C e RTC)
-#include "DHT.h"            // Biblioteca para o sensor de temperatura e umidade 
+#include <Wire.h>         // Biblioteca para comunicação I2C (necessária para LCD I2C e RTC)
+#include "DHT.h"          // Biblioteca para o sensor de temperatura e umidade
 #include <EEPROM.h>         // Biblioteca para interagir com a memória EEPROM interna do microcontrolador
 
 // --- OBJETOS E CONSTANTES GLOBAIS ---
@@ -37,9 +37,9 @@ bool usarFarenhait = false;
 int tempAdress = 0;         // Endereço para armazenar a preferência de unidade de temperatura
 int fusoAdress = 1;         // Endereço para armazenar o fuso horário
 int guardarAtualAdress = 3; // Endereço para armazenar o próximo local de escrita no log da EEPROM
-int startAdress = 5;        // Endereço inicial para os logs de dados na EEPROM
-int tamanhoDeLog = 10;      // Tamanho em bytes de cada entrada de log (timestamp, temp, umid, luz)
-int maxSaves = 50;          // Número máximo de entradas de log que podem ser salvas
+int startAdress = 5;         // Endereço inicial para os logs de dados na EEPROM
+int tamanhoDeLog = 10;       // Tamanho em bytes de cada entrada de log (timestamp, temp, umid, luz)
+int maxSaves = 50;           // Número máximo de entradas de log que podem ser salvas
 // Endereço final para os logs, calculado com base no número máximo de saves e tamanho do log
 int endAdress = (maxSaves * tamanhoDeLog) + 5;
 
@@ -62,7 +62,7 @@ byte chifreEsq[] = {B00000, B00111, B01100, B01001, B00110, B00000, B00000, B000
 byte chifreDir[] = {B00000, B11100, B00110, B10010, B01100, B00000, B00000, B00000}; // Parte do logo
 
 byte abaixoDosParametros[] = {B00000, B00100, B00100, B00100, B00100, B10101, B01110, B00000}; // Ícone: abaixo do normal
-byte acimaDosParametros[] = {B00000, B01110, B10101, B00100, B00100, B00100, B00100, B00000};  // Ícone: acima do normal
+byte acimaDosParametros[] = {B00000, B01110, B10101, B00100, B00100, B00100, B00100, B00000};   // Ícone: acima do normal
 byte dentroDosParametros[] = {B00000, B01010, B01010, B00000, B00000, B10001, B01110, B00000}; // Ícone: dentro do normal
 
 // --- PINOS E PARÂMETROS DOS SENSORES E ATUADORES ---
@@ -74,7 +74,7 @@ int maxOkLuz = 50; // Máximo aceitável
 int intervaloAlertaMinLuz = minOkLuz - 10;
 int intervaloAlertaMaxLuz = maxOkLuz + 10;
 
-// Limites para a temperatura 
+// Limites para a temperatura
 int minOkTemp = 12;
 int maxOkTemp = 14;
 // Intervalos de alerta para temperatura (offset em relação aos limites Ok)
@@ -89,20 +89,25 @@ int intervaloAlertaMinUmid = 10;
 int intervaloAlertaMaxUmid = 10;
 
 // Pinos digitais para os LEDs de status
-int ledVerm = 7;  // LED vermelho (alerta crítico)
-int ledAmar = 6;  // LED amarelo (alerta moderado)
-int ledVerd = 5;  // LED verde (status normal)
+int ledVerm = 7;   // LED vermelho (alerta crítico)
+int ledAmar = 6;   // LED amarelo (alerta moderado)
+int ledVerd = 5;   // LED verde (status normal)
 
 // Pino digital para o botão de mudança de HUD (display no LCD)
 int botaoHud = 2;
+// Variáveis para debounce do botão HUD
+unsigned long lastDebounceTimeHud = 0;
+unsigned long debounceDelayHud = 50; // Tempo de debounce em milissegundos
+int buttonStateHud = LOW;
+int lastButtonStateHud = LOW;
 
 // Estado atual do HUD (0: valores, 1: ícones de status, 2: data/hora)
 int hudState = 0;
 
 // --- VARIÁVEIS DE CONTROLE DE MENU (VIA SERIAL) ---
-bool menuPrincipal = true;  // Flag: menu principal está ativo
-bool menuTemp = false;      // Flag: menu de configuração de temperatura está ativo
-bool menuFuso = false;      // Flag: menu de configuração de fuso horário está ativo
+bool menuPrincipal = true;   // Flag: menu principal está ativo
+bool menuTemp = false;       // Flag: menu de configuração de temperatura está ativo
+bool menuFuso = false;       // Flag: menu de configuração de fuso horário está ativo
 bool menuDataLogger = false; // Flag: menu do data logger está ativo
 
 // String para armazenar a entrada do usuário via monitor serial
@@ -110,8 +115,8 @@ String entradaUsuario = "";
 
 // --- FUNÇÃO SETUP: Executada uma vez no início ---
 void setup() {
-  Serial.begin(9600);     // Inicializa a comunicação serial
-  EEPROM.begin();         // Inicializa a EEPROM
+  Serial.begin(9600);       // Inicializa a comunicação serial
+  EEPROM.begin();           // Inicializa a EEPROM
   mostrarMenuPrincipal(); // Exibe o menu principal no monitor serial
 
   // Verifica e corrige o endereço de início do log se estiver inválido
@@ -130,13 +135,13 @@ void setup() {
   }
 
   if (usarFarenhait == true) {
-    int minOkTemp = 53;
-    int maxOkTemp = 57;
+    minOkTemp = 53;
+    maxOkTemp = 57;
   }
 
   else if (usarFarenhait == false) {
-    int minOkTemp = 12;
-    int maxOkTemp = 14;
+    minOkTemp = 12;
+    maxOkTemp = 14;
   }
 
   // Carrega a configuração de fuso horário da EEPROM
@@ -152,19 +157,18 @@ void setup() {
   RTC.begin(); // Inicializa o RTC
   // Ajusta o RTC para a data e hora em que o código foi compilado.
   RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
-
   // Configura os pinos
-  pinMode(sensorLuz, INPUT);    // Sensor de luz como entrada
-  pinMode(botaoHud, INPUT);     // Botão do HUD como entrada
-  pinMode(buzzer, OUTPUT);      // Buzzer como saída
+  pinMode(sensorLuz, INPUT);     // Sensor de luz como entrada
+  pinMode(botaoHud, INPUT_PULLUP);   // Botão do HUD como entrada com pull-up interno
+  pinMode(buzzer, OUTPUT);       // Buzzer como saída
   // LEDs como saída
-  pinMode(ledVerm, OUTPUT);     
+  pinMode(ledVerm, OUTPUT);
   pinMode(ledAmar, OUTPUT);
   pinMode(ledVerd, OUTPUT);
 
   dht.begin(); // Inicializa o sensor DHT
 
-  lcd.init();      // Inicializa o LCD
+  lcd.init();       // Inicializa o LCD
   lcd.backlight(); // Liga a luz de fundo do LCD
 
   // Cria os caracteres personalizados no LCD, associando os arrays de bytes a índices (0-7)
@@ -223,7 +227,7 @@ void loop() {
     float leituraBrutaLuz = (analogRead(sensorLuz));
     // Soma a leitura a uma variavel externa do loop for
     somaLuz += leituraBrutaLuz;
-    
+
     float leituraPorcentagemUmid = dht.readHumidity();
     // Soma a leitura a uma variavel externa do loop for
     somaUmid += leituraPorcentagemUmid;
@@ -234,22 +238,32 @@ void loop() {
 
     delay(100); // Pequena pausa entre as leituras
 
-    // Verifica se o botão do HUD foi pressionado
-    if (digitalRead(botaoHud) == HIGH) {
-      // Lógica para ciclar entre os estados do HUD (0, 1, 2)
-      if (hudState == 0) {
-        hudState = 1;
-      } else if (hudState == 1) {
-        hudState = 2;
-      } else if (hudState == 2) {
-        hudState = 0;
-      }
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Mudando de ");
-      lcd.setCursor(0, 1);
-      lcd.print("hud...");
+    // Lógica de debounce para o botão HUD
+    int readingHud = digitalRead(botaoHud);
+    if (readingHud != lastButtonStateHud) {
+      lastDebounceTimeHud = millis();
     }
+    if ((millis() - lastDebounceTimeHud) > debounceDelayHud) {
+      if (readingHud != buttonStateHud) {
+        buttonStateHud = readingHud;
+        if (buttonStateHud == LOW) { // Mudança de estado para pressionado (LOW devido ao pull-up)
+          // Lógica para ciclar entre os estados do HUD (0, 1, 2)
+          if (hudState == 0) {
+            hudState = 1;
+          } else if (hudState == 1) {
+            hudState = 2;
+          } else if (hudState == 2) {
+            hudState = 0;
+          }
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Mudando de ");
+          lcd.setCursor(0, 1);
+          lcd.print("hud...");
+        }
+      }
+    }
+    lastButtonStateHud = readingHud;
   }
   // Calcula as médias das leituras
   float mediaLuzBruta = somaLuz / 100;
@@ -604,20 +618,20 @@ void verificarStatus(int luz, float umid, float temp) {
     digitalWrite(ledVerd, HIGH);
     digitalWrite(ledAmar, LOW);
     digitalWrite(ledVerm, LOW);
-    digitalWrite(buzzer, LOW);
+    noTone(buzzer);
   }
   else if (alertaCritico) { // Pelo menos um parâmetro em estado crítico
     digitalWrite(ledVerd, LOW);
     digitalWrite(ledAmar, LOW);
     digitalWrite(ledVerm, HIGH);
-    digitalWrite(buzzer, HIGH); // Buzzer ativo em alerta crítico
+    tone(buzzer, 500); // Buzzer ativo em alerta crítico
   }
   else if (alertaModerado) { // Pelo menos um parâmetro em estado de alerta moderado
                              // (e nenhum em estado crítico, implicitamente pela ordem do if/else if)
     digitalWrite(ledVerd, LOW);
     digitalWrite(ledAmar, HIGH);
     digitalWrite(ledVerm, LOW);
-    digitalWrite(buzzer, HIGH); // Buzzer também ativo em alerta moderado
+    tone(buzzer, 500); // Buzzer também ativo em alerta moderado
   } 
   else { //se nenhuma condição anterior for atendida (deve ser raro, mas bom para segurança)
     digitalWrite(ledVerd, LOW);
